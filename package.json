@@ -186,6 +186,21 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Working directory for omp (defaults to the first workspace folder, or your home directory)."
+        },
+        "ohMyPi.panelLocation": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "secondary",
+            "panel"
+          ],
+          "enumDescriptions": [
+            "Primary (left) side bar — the default location for a panel contributed to the activity bar.",
+            "Secondary (right) side bar — set this if you dragged the Oh My Pi panel to the other side.",
+            "Panel area at the bottom of the window."
+          ],
+          "default": "primary",
+          "markdownDescription": "Where the Oh My Pi panel lives, so **Control+L** can close it. VS Code offers no API for a view's location, and each close command targets one fixed region, so this has to match your layout."
         }
       }
     },

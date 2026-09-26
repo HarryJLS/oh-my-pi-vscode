@@ -16,6 +16,8 @@ const STUB_SOURCE = `
 export const executed = [];
 export const registered = new Map();
 export const providers = new Map();
+/** Settings the extension reads, keyed by "<section>.<name>". */
+export const settings = {};
 
 export const commands = {
   registerCommand(name, cb) {
@@ -47,8 +49,8 @@ export const window = {
 
 export const workspace = {
   workspaceFolders: [{ uri: { fsPath: process.cwd(), scheme: "file" } }],
-  getConfiguration() {
-    return { get: () => undefined };
+  getConfiguration(section) {
+    return { get: (key) => settings[section + "." + key] };
   },
   onDidChangeConfiguration() {
     return { dispose() {} };
@@ -99,6 +101,7 @@ type FakeVscode = {
   executed: string[];
   registered: Map<string, () => unknown>;
   providers: Map<string, FakeProvider>;
+  settings: Record<string, unknown>;
   window: { activeTextEditor: unknown };
 };
 
@@ -157,6 +160,17 @@ async function loadExtension(): Promise<{ fake: FakeVscode; activate: (context: 
   }
 }
 
+/**
+ * Drains microtasks until `settled` holds. The provider only awaits promises the
+ * stub already resolved, so this is deterministic — no wall-clock waits.
+ */
+async function drainUntil(settled: () => boolean, label: string): Promise<void> {
+  for (let i = 0; i < 100 && !settled(); i++) {
+    await Promise.resolve();
+  }
+  assert.ok(settled(), `did not settle: ${label}`);
+}
+
 function makeEditor(selection: {
   isEmpty: boolean;
   start: { line: number; character: number };
@@ -172,6 +186,7 @@ function makeEditor(selection: {
 function openWebview(provider: FakeProvider, visible: boolean) {
   const posted: unknown[] = [];
   let receive: ((raw: unknown) => unknown) | undefined;
+
   provider.resolveWebviewView(
     {
       visible,
@@ -223,7 +238,7 @@ describe("ohMyPi.sendSelectedLinesOrToggle", () => {
     assert.deepEqual(fake.executed, ["ohMyPi.terminal.focus"]);
   });
 
-  it("closes the sidebar when the terminal view is visible", async () => {
+  it("closes the primary side bar by default", async () => {
     const { fake } = await loadExtension();
     const handler = fake.registered.get("ohMyPi.sendSelectedLinesOrToggle");
     assert.ok(handler);
@@ -243,6 +258,54 @@ describe("ohMyPi.sendSelectedLinesOrToggle", () => {
     assert.deepEqual(fake.executed, ["workbench.action.closeSidebar"]);
     // Toggling must never start omp before the webview reports itself ready.
     assert.deepEqual(webview.posted, []);
+
+    provider.dispose();
+  });
+
+  it("closes the region named by ohMyPi.panelLocation", async () => {
+    const { fake } = await loadExtension();
+    const handler = fake.registered.get("ohMyPi.sendSelectedLinesOrToggle");
+    assert.ok(handler);
+
+    const provider = fake.providers.get("ohMyPi.terminal");
+    assert.ok(provider);
+    openWebview(provider, true);
+    fake.window.activeTextEditor = makeEditor({
+      isEmpty: true,
+      start: { line: 0, character: 0 },
+      end: { line: 0, character: 0 },
+    });
+
+    fake.settings["ohMyPi.panelLocation"] = "secondary";
+    await handler();
+    assert.deepEqual(fake.executed, ["workbench.action.closeAuxiliaryBar"]);
+
+    fake.executed.length = 0;
+    fake.settings["ohMyPi.panelLocation"] = "panel";
+    await handler();
+    assert.deepEqual(fake.executed, ["workbench.action.closePanel"]);
+
+    provider.dispose();
+  });
+
+  it("falls back to the primary side bar for an unknown panelLocation", async () => {
+    const { fake } = await loadExtension();
+    const handler = fake.registered.get("ohMyPi.sendSelectedLinesOrToggle");
+    assert.ok(handler);
+
+    const provider = fake.providers.get("ohMyPi.terminal");
+    assert.ok(provider);
+    openWebview(provider, true);
+    fake.window.activeTextEditor = makeEditor({
+      isEmpty: true,
+      start: { line: 0, character: 0 },
+      end: { line: 0, character: 0 },
+    });
+
+    fake.settings["ohMyPi.panelLocation"] = "left-ish";
+    await handler();
+
+    assert.deepEqual(fake.executed, ["workbench.action.closeSidebar"]);
 
     provider.dispose();
   });
@@ -271,25 +334,28 @@ describe("ohMyPi.sendSelectedLinesOrToggle", () => {
 });
 
 describe("Ctrl+L inside the terminal", () => {
-  it("closes the sidebar when the webview owns focus", async () => {
+  it("closes the configured region while the webview owns focus", async () => {
     const { fake } = await loadExtension();
     const provider = fake.providers.get("ohMyPi.terminal");
     assert.ok(provider);
     const webview = openWebview(provider, true);
+    fake.settings["ohMyPi.panelLocation"] = "secondary";
 
     await webview.emit({ type: "toggleSidebar" });
+    await drainUntil(() => fake.executed.length > 0, "toggle command");
 
-    assert.deepEqual(fake.executed, ["workbench.action.closeSidebar"]);
+    assert.deepEqual(fake.executed, ["workbench.action.closeAuxiliaryBar"]);
     provider.dispose();
   });
 
-  it("reveals the sidebar when the resolved view is hidden", async () => {
+  it("reveals the panel when the resolved view is hidden", async () => {
     const { fake } = await loadExtension();
     const provider = fake.providers.get("ohMyPi.terminal");
     assert.ok(provider);
     const webview = openWebview(provider, false);
 
     await webview.emit({ type: "toggleSidebar" });
+    await drainUntil(() => fake.executed.length > 0, "reveal command");
 
     assert.deepEqual(fake.executed, ["ohMyPi.terminal.focus"]);
     provider.dispose();
@@ -302,6 +368,7 @@ describe("Ctrl+L inside the terminal", () => {
     const webview = openWebview(provider, true);
 
     await webview.emit({ type: "nope" });
+    await drainUntil(() => true, "no command");
 
     assert.deepEqual(fake.executed, []);
     provider.dispose();

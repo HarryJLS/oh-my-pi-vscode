@@ -18,13 +18,13 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("ohMyPi.search", () => {
       provider.search();
     }),
-    vscode.commands.registerCommand("ohMyPi.sendSelectedLinesOrToggle", () => {
+    vscode.commands.registerCommand("ohMyPi.sendSelectedLinesOrToggle", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         return;
       }
       if (editor.selection.isEmpty) {
-        provider.toggle();
+        await provider.toggle();
         return;
       }
       sendLineReference(provider, editor);

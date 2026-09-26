@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Control+L** in the editor sends selected lines to omp and focuses the composer; with no selection, it toggles the Oh My Pi sidebar — open it when it is hidden (launching `omp` if it is not running), close it when it is visible. Inside the terminal the same key toggles the sidebar: it is intercepted in the webview and never forwarded to `omp`, so the shortcut works no matter where focus is.
+- **Control+L** in the editor sends selected lines to omp and focuses the composer; with no selection, it toggles the Oh My Pi panel — open it when it is hidden (launching `omp` if it is not running), close it when it is visible. Inside the terminal the same key toggles the panel: it is intercepted in the webview and never forwarded to `omp`, so the shortcut works no matter where focus is.
 - The embedded terminal preserves macOS terminal behavior for **Cmd+Backspace** by sending `Ctrl+U`, deleting the current OMP input line in one operation.
 - macOS **Option-as-Meta**: the embedded terminal now honors VS Code's `terminal.integrated.macOptionIsMeta` setting. When enabled, `Option`+key sends the escape prefix (e.g. `Option+B` → `ESC b` for word-back) instead of typing the keyboard layout's third-level character. The mode is applied live when the setting changes.
+
+### Fixed
+
+- **Control+L closed the wrong pane** once the panel was moved out of the primary side bar. Closing used `workbench.action.closeSidebar`, which always targets the primary side bar, so a panel living in the secondary side bar (or the panel area) left an unrelated side bar closed while the terminal stayed open. VS Code exposes no API for a view's location, so the new `ohMyPi.panelLocation` setting (`primary` | `secondary` | `panel`) names the region to close.
 
 ## [1.3.0] - 2026-09-16
 

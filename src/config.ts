@@ -52,3 +52,26 @@ export function getTerminalSettings(): TerminalSettings {
       config.get<boolean>("macOptionIsMeta") ?? DEFAULT_TERMINAL_SETTINGS.macOptionIsMeta,
   };
 }
+
+/**
+ * The workbench command that hides the region the panel sits in.
+ *
+ * VS Code exposes no API for a view's location, and every "close" command
+ * targets one fixed part, so the user points at the part the panel lives in.
+ * `workbench.action.closeSidebar` is the default because a container
+ * contributed through `viewsContainers.activitybar` starts in the primary side
+ * bar.
+ */
+const CLOSE_COMMAND_BY_PANEL_LOCATION: Record<string, string> = {
+  primary: "workbench.action.closeSidebar",
+  secondary: "workbench.action.closeAuxiliaryBar",
+  panel: "workbench.action.closePanel",
+};
+
+export function getPanelCloseCommand(): string {
+  const configured = vscode.workspace.getConfiguration("ohMyPi").get<string>("panelLocation");
+  return (
+    (configured && CLOSE_COMMAND_BY_PANEL_LOCATION[configured]) ??
+    CLOSE_COMMAND_BY_PANEL_LOCATION.primary
+  );
+}

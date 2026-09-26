@@ -6,6 +6,7 @@ import * as vscode from "vscode";
 
 import {
   getExecutable,
+  getPanelCloseCommand,
   getProfile,
   getTerminalSettings,
   resolveWorkingDirectory,
@@ -89,7 +90,7 @@ export class TerminalViewProvider implements vscode.WebviewViewProvider {
             this.#writeInput(msg.data ?? "");
             break;
           case "toggleSidebar":
-            this.toggle();
+            void this.toggle();
             break;
           case "openUrl":
             if (msg.uri) {
@@ -122,16 +123,30 @@ export class TerminalViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Closes the sidebar when the terminal view is showing, otherwise reveals it.
-   * The view is undefined (never resolved) until it is first revealed, so a
-   * plain "hide" would be a no-op right after a window reload.
+   * Hides the panel the terminal view lives in.
+   *
+   * `workbench.action.closeSidebar` only ever closes the *primary* side bar, so
+   * it shuts an unrelated pane as soon as the panel has been moved (secondary
+   * side bar or panel area). VS Code exposes no API for a view's location, so
+   * `ohMyPi.panelLocation` names the region to close.
    */
-  toggle(): void {
-    if (this.#view?.visible) {
-      void vscode.commands.executeCommand("workbench.action.closeSidebar");
+  async hide(): Promise<void> {
+    if (!this.#view?.visible) {
       return;
     }
-    void this.reveal();
+    await vscode.commands.executeCommand(getPanelCloseCommand());
+  }
+
+  /**
+   * Closes the panel showing the terminal view, otherwise reveals it. The view
+   * is undefined (never resolved) until it is first revealed, so a plain "hide"
+   * would be a no-op right after a window reload.
+   */
+  toggle(): Promise<void> {
+    if (this.#view?.visible) {
+      return this.hide();
+    }
+    return Promise.resolve(this.reveal()).then(() => undefined);
   }
 
   restart(): void {

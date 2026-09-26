@@ -49,7 +49,9 @@ The find bar supports case-sensitive, whole-word, and regex matching with a live
 
 ### Sending code from the editor
 
-Available from the editor's right-click menu or the Command Palette. In the editor, **Control+L** sends selected lines and focuses the OMP composer; with no selection, it toggles the Oh My Pi sidebar — opening it (and launching `omp`) when hidden, closing it when visible. Inside the terminal the same key toggles the sidebar too: it is intercepted in the webview and never reaches `omp`, so the shortcut behaves identically wherever focus is.
+Available from the editor's right-click menu or the Command Palette. In the editor, **Control+L** sends selected lines and focuses the OMP composer; with no selection, it toggles the panel — opening it (and launching `omp`) when hidden, closing the region it lives in when visible. Inside the terminal the same key toggles it too: it is intercepted in the webview and never reaches `omp`, so the shortcut behaves identically wherever focus is.
+
+VS Code has no API for the location of a view, and every "close" command targets one fixed region, so tell the extension where you keep the panel with **`ohMyPi.panelLocation`** (`primary` by default; use `secondary` if you dragged the panel to the right side bar, or `panel` for the bottom area).
 
 | Command | What it sends |
 |---------|---------------|
@@ -65,6 +67,7 @@ Available from the editor's right-click menu or the Command Palette. In the edit
 | `ohMyPi.profile` | *(empty)* | OMP profile to run (e.g. `work`). Set it per workspace in `.vscode/settings.json` so each repo can use its own agent profile. A `--profile` flag in `ohMyPi.executablePath` takes precedence. |
 | `ohMyPi.autoStart` | `false` | Open the panel automatically when VS Code starts. |
 | `ohMyPi.workingDirectory` | workspace / home | Working directory passed to `omp`. Invalid paths fall back to home. |
+| `ohMyPi.panelLocation` | `primary` | Where the panel lives, so **Control+L** can close it: `primary` (left side bar), `secondary` (right side bar), or `panel` (bottom). |
 
 Font size and family follow `terminal.integrated.fontSize` and `terminal.integrated.fontFamily`.
 
