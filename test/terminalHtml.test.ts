@@ -3,14 +3,16 @@ import { describe, it } from "node:test";
 import path from "node:path";
 import vm from "node:vm";
 
-import { DEFAULT_TERMINAL_FONT } from "../src/appearance";
+import { DEFAULT_TERMINAL_SETTINGS } from "../src/appearance";
 import { buildTerminalHtml, clearAssetCache } from "../src/terminal/terminalHtml";
+
+const SETTINGS = { ...DEFAULT_TERMINAL_SETTINGS, macOptionIsMeta: true };
 
 describe("buildTerminalHtml", () => {
   it("returns ok html when assets exist", () => {
     clearAssetCache();
     const extensionPath = path.resolve(import.meta.dirname, "..");
-    const result = buildTerminalHtml(extensionPath, DEFAULT_TERMINAL_FONT);
+    const result = buildTerminalHtml(extensionPath, SETTINGS);
 
     assert.equal(result.ok, true);
     if (result.ok) {
@@ -24,13 +26,16 @@ describe("buildTerminalHtml", () => {
       // Shift+Enter must inject a newline sequence (xterm.js drops shiftKey for Enter).
       assert.match(result.html, /e\.shiftKey/);
       assert.match(result.html, /\\x1b\[13;2~/);
+      // Preserve macOS terminal semantics: Cmd+Backspace sends Ctrl+U.
+      assert.match(result.html, /e\.metaKey.*e\.key === 'Backspace'/s);
+      assert.match(result.html, /data: '\\x15'/);
     }
   });
 
   it("inline webview script is syntactically valid", () => {
     clearAssetCache();
     const extensionPath = path.resolve(import.meta.dirname, "..");
-    const result = buildTerminalHtml(extensionPath, DEFAULT_TERMINAL_FONT);
+    const result = buildTerminalHtml(extensionPath, SETTINGS);
     assert.equal(result.ok, true);
     if (result.ok) {
       // Extract the last nonce'd <script> (the inline app code) and confirm it
@@ -45,9 +50,29 @@ describe("buildTerminalHtml", () => {
     }
   });
 
+  it("passes macOptionIsMeta through to the xterm Terminal options", () => {
+    clearAssetCache();
+    const extensionPath = path.resolve(import.meta.dirname, "..");
+    const off = buildTerminalHtml(extensionPath, {
+      ...DEFAULT_TERMINAL_SETTINGS,
+      macOptionIsMeta: false,
+    });
+    const on = buildTerminalHtml(extensionPath, {
+      ...DEFAULT_TERMINAL_SETTINGS,
+      macOptionIsMeta: true,
+    });
+
+    assert.equal(off.ok, true);
+    assert.equal(on.ok, true);
+    if (off.ok && on.ok) {
+      assert.match(off.html, /macOptionIsMeta: false/);
+      assert.match(on.html, /macOptionIsMeta: true/);
+    }
+  });
+
   it("returns error html when assets are missing", () => {
     clearAssetCache();
-    const result = buildTerminalHtml("/nonexistent/path", DEFAULT_TERMINAL_FONT);
+    const result = buildTerminalHtml("/nonexistent/path", SETTINGS);
 
     assert.equal(result.ok, false);
     assert.match(result.html, /Failed to load terminal assets/);

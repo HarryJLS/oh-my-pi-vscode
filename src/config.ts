@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as vscode from "vscode";
 
-import { DEFAULT_TERMINAL_FONT, type TerminalFont } from "./appearance";
+import { DEFAULT_TERMINAL_SETTINGS, type TerminalSettings } from "./appearance";
 
 export function getExecutable(): string {
   const config = vscode.workspace.getConfiguration("ohMyPi");
@@ -39,10 +39,16 @@ export function resolveWorkingDirectory(): string {
   return os.homedir();
 }
 
-export function getTerminalFont(): TerminalFont {
+/**
+ * Terminal appearance/behaviour mirrored from VS Code's `terminal.integrated.*`
+ * settings, so the embedded panel matches the built-in terminal.
+ */
+export function getTerminalSettings(): TerminalSettings {
   const config = vscode.workspace.getConfiguration("terminal.integrated");
   return {
-    family: config.get<string>("fontFamily") || DEFAULT_TERMINAL_FONT.family,
-    size: config.get<number>("fontSize") ?? DEFAULT_TERMINAL_FONT.size,
+    family: config.get<string>("fontFamily") || DEFAULT_TERMINAL_SETTINGS.family,
+    size: config.get<number>("fontSize") ?? DEFAULT_TERMINAL_SETTINGS.size,
+    macOptionIsMeta:
+      config.get<boolean>("macOptionIsMeta") ?? DEFAULT_TERMINAL_SETTINGS.macOptionIsMeta,
   };
 }

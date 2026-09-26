@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { TerminalFont } from "../appearance";
+import type { TerminalSettings } from "../appearance";
 import { themeReaderScript } from "../theme/xtermTheme";
 
 type XtermAssets = {
@@ -51,7 +51,7 @@ export type TerminalHtmlResult =
 
 export function buildTerminalHtml(
   extensionPath: string,
-  font: TerminalFont,
+  settings: TerminalSettings,
 ): TerminalHtmlResult {
   let assets: XtermAssets;
   try {
@@ -69,7 +69,7 @@ export function buildTerminalHtml(
 
   return {
     ok: true,
-    html: buildTerminalHtmlInner(assets, nonce, font),
+    html: buildTerminalHtmlInner(assets, nonce, settings),
   };
 }
 
@@ -102,7 +102,7 @@ function buildErrorHtml(message: string): string {
 function buildTerminalHtmlInner(
   assets: XtermAssets,
   nonce: string,
-  font: { family: string; size: number },
+  settings: TerminalSettings,
 ): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -207,8 +207,9 @@ function buildTerminalHtmlInner(
     const term = new Terminal({
       allowProposedApi: true,
       cursorBlink: true,
-      fontSize: ${font.size},
-      fontFamily: ${JSON.stringify(font.family)},
+      fontSize: ${settings.size},
+      fontFamily: ${JSON.stringify(settings.family)},
+      macOptionIsMeta: ${settings.macOptionIsMeta},
       scrollback: 10000,
     });
 
@@ -399,7 +400,13 @@ function buildTerminalHtmlInner(
     // still observable) and inject the legacy Shift+Enter sequence that the omp
     // editor maps to insert newline (see pi-tui editor.ts).
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (e.metaKey && !e.ctrlKey && !e.altKey && e.key === 'Backspace') {
+        e.preventDefault();
+        e.stopPropagation();
+        // Preserve macOS terminal semantics: Cmd+Backspace sends Ctrl+U so omp
+        // removes the current input line in one operation.
+        vscode.postMessage({ type: 'input', data: '\\x15' });
+      } else if (e.key === 'Enter' && e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         e.stopPropagation();
         vscode.postMessage({ type: 'input', data: '\\x1b[13;2~' });
@@ -476,9 +483,10 @@ function buildTerminalHtmlInner(
         exited = false;
       } else if (msg.type === 'theme') {
         applyTheme();
-      } else if (msg.type === 'font') {
+      } else if (msg.type === 'settings') {
         term.options.fontSize = msg.size;
         term.options.fontFamily = msg.family;
+        term.options.macOptionIsMeta = msg.macOptionIsMeta === true;
         fitAndNotify();
       } else if (msg.type === 'search') {
         openSearch();

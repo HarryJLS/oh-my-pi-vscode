@@ -5,6 +5,14 @@ All notable changes to **Oh My Pi for VS Code** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Control+L** in the editor sends selected lines to omp and focuses the composer; with no selection, it toggles the Oh My Pi sidebar — open it when it is hidden (launching `omp` if it is not running), close it when it is visible.
+- The embedded terminal preserves macOS terminal behavior for **Cmd+Backspace** by sending `Ctrl+U`, deleting the current OMP input line in one operation.
+- macOS **Option-as-Meta**: the embedded terminal now honors VS Code's `terminal.integrated.macOptionIsMeta` setting. When enabled, `Option`+key sends the escape prefix (e.g. `Option+B` → `ESC b` for word-back) instead of typing the keyboard layout's third-level character. The mode is applied live when the setting changes.
+
 ## [1.3.0] - 2026-09-16
 
 ### Added

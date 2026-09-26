@@ -29,6 +29,7 @@ Any of these opens the panel:
 - Click the **Oh My Pi** icon in the activity bar
 - Run **Oh My Pi for VS Code: Open Terminal** from the Command Palette
 - Press **Cmd+Shift+Alt+I** (macOS) / **Ctrl+Shift+Alt+I** (Windows/Linux)
+- Press **Control+L** in the editor with nothing selected (toggles the sidebar)
 
 `omp` launches as soon as the panel opens. To restart it manually, click the toolbar button or run **Restart Terminal** from the Command Palette. If `omp` exits on its own, just press any key to relaunch it.
 
@@ -37,6 +38,7 @@ Any of these opens the panel:
 | Action | Shortcut |
 |--------|----------|
 | Paste | Cmd/Ctrl+V or middle-click |
+| Delete the current input line | Cmd+Backspace (macOS terminal semantics) |
 | Find | Cmd/Ctrl+F (or the search toolbar button) |
 | New line in the `omp` composer | Shift+Enter |
 
@@ -46,7 +48,7 @@ The find bar supports case-sensitive, whole-word, and regex matching with a live
 
 ### Sending code from the editor
 
-Available from the editor's right-click menu or the Command Palette:
+Available from the editor's right-click menu or the Command Palette. In the editor, **Control+L** sends selected lines and focuses the OMP composer; with no selection, it toggles the Oh My Pi sidebar — opening it (and launching `omp`) when hidden, closing it when visible.
 
 | Command | What it sends |
 |---------|---------------|
@@ -64,6 +66,8 @@ Available from the editor's right-click menu or the Command Palette:
 | `ohMyPi.workingDirectory` | workspace / home | Working directory passed to `omp`. Invalid paths fall back to home. |
 
 Font size and family follow `terminal.integrated.fontSize` and `terminal.integrated.fontFamily`.
+
+On macOS, the embedded terminal also follows `terminal.integrated.macOptionIsMeta` (default `false`): enable it to make `Option`+key act as `Meta`, sending an escape prefix (`Option+B` → `ESC b`) instead of the layout's third-level character. Changing the setting applies immediately, no restart needed.
 
 Terminal colors (background, foreground, cursor, selection, and all 16 ANSI colors) are read from your active VS Code theme via `--vscode-terminal-*` CSS variables — they update automatically when you switch themes.
 

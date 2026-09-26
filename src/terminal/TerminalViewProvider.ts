@@ -7,7 +7,7 @@ import * as vscode from "vscode";
 import {
   getExecutable,
   getProfile,
-  getTerminalFont,
+  getTerminalSettings,
   resolveWorkingDirectory,
 } from "../config";
 import { parseTerminalMessage } from "../messages";
@@ -39,7 +39,8 @@ export class TerminalViewProvider implements vscode.WebviewViewProvider {
           this.restart();
         } else if (
           e.affectsConfiguration("terminal.integrated.fontFamily") ||
-          e.affectsConfiguration("terminal.integrated.fontSize")
+          e.affectsConfiguration("terminal.integrated.fontSize") ||
+          e.affectsConfiguration("terminal.integrated.macOptionIsMeta")
         ) {
           this.#syncAppearance();
         }
@@ -113,8 +114,21 @@ export class TerminalViewProvider implements vscode.WebviewViewProvider {
     );
   }
 
-  reveal(): void {
-    void vscode.commands.executeCommand(`${TerminalViewProvider.viewType}.focus`);
+  reveal(): Thenable<unknown> {
+    return vscode.commands.executeCommand(`${TerminalViewProvider.viewType}.focus`);
+  }
+
+  /**
+   * Closes the sidebar when the terminal view is showing, otherwise reveals it.
+   * The view is undefined (never resolved) until it is first revealed, so a
+   * plain "hide" would be a no-op right after a window reload.
+   */
+  toggle(): void {
+    if (this.#view?.visible) {
+      void vscode.commands.executeCommand("workbench.action.closeSidebar");
+      return;
+    }
+    void this.reveal();
   }
 
   restart(): void {
@@ -135,8 +149,13 @@ export class TerminalViewProvider implements vscode.WebviewViewProvider {
     if (!this.#view) {
       // Panel not yet open — queue and reveal. #ensurePty() flushes after spawn.
       this.#pendingSend = data;
-      this.reveal();
+      void this.reveal().then(() => this.#view?.webview.postMessage({ type: "focus" }));
       return;
+    }
+    if (!this.#view.visible) {
+      void this.reveal().then(() => this.#view?.webview.postMessage({ type: "focus" }));
+    } else {
+      this.#view.webview.postMessage({ type: "focus" });
     }
     if (this.#exited) {
       this.#restart();
@@ -156,7 +175,7 @@ export class TerminalViewProvider implements vscode.WebviewViewProvider {
   }
 
   #setWebviewHtml(webview: vscode.Webview): void {
-    const result = buildTerminalHtml(this.extensionUri.fsPath, getTerminalFont());
+    const result = buildTerminalHtml(this.extensionUri.fsPath, getTerminalSettings());
     webview.html = result.html;
 
     if (!result.ok) {
@@ -171,8 +190,8 @@ export class TerminalViewProvider implements vscode.WebviewViewProvider {
 
     this.#view.webview.postMessage({ type: "theme" });
     this.#view.webview.postMessage({
-      type: "font",
-      ...getTerminalFont(),
+      type: "settings",
+      ...getTerminalSettings(),
     });
   }
 

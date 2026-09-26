@@ -34,6 +34,7 @@
     "onCommand:ohMyPi.open",
     "onCommand:ohMyPi.restart",
     "onCommand:ohMyPi.sendLines",
+    "onCommand:ohMyPi.sendSelectedLinesOrToggle",
     "onCommand:ohMyPi.sendSelection",
     "onCommand:ohMyPi.sendFile",
     "onStartupFinished"
@@ -86,6 +87,11 @@
         "title": "OMP: Send Line(s) to omp",
         "category": "Oh My Pi for VS Code",
         "icon": "$(code)"
+      },
+      {
+        "command": "ohMyPi.sendSelectedLinesOrToggle",
+        "title": "OMP: Send Selected Lines or Toggle Sidebar",
+        "category": "Oh My Pi for VS Code"
       },
       {
         "command": "ohMyPi.sendSelection",
@@ -188,6 +194,11 @@
         "command": "ohMyPi.open",
         "key": "ctrl+shift+alt+i",
         "mac": "cmd+shift+alt+i"
+      },
+      {
+        "command": "ohMyPi.sendSelectedLinesOrToggle",
+        "key": "ctrl+l",
+        "when": "editorTextFocus"
       },
       {
         "command": "ohMyPi.search",

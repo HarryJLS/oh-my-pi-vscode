@@ -18,6 +18,17 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("ohMyPi.search", () => {
       provider.search();
     }),
+    vscode.commands.registerCommand("ohMyPi.sendSelectedLinesOrToggle", () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      if (editor.selection.isEmpty) {
+        provider.toggle();
+        return;
+      }
+      sendLineReference(provider, editor);
+    }),
     vscode.commands.registerCommand("ohMyPi.sendSelection", () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
@@ -37,25 +48,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!editor) {
         return;
       }
-      const { document, selection } = editor;
-      const relPath = vscode.workspace.asRelativePath(document.uri);
-
-      // Whole-line range (0-indexed internally; editor display is 1-indexed).
-      let start = selection.start.line;
-      let end = selection.end.line;
-      // A selection ending at column 0 does not include that last line.
-      if (selection.end.character === 0 && end > start) {
-        end -= 1;
-      }
-      // Clamp to the valid document range.
-      const lastLine = document.lineCount - 1;
-      start = Math.max(0, Math.min(start, lastLine));
-      end = Math.max(0, Math.min(end, lastLine));
-
-      const startNo = start + 1;
-      const endNo = end + 1;
-      const ref = startNo === endNo ? `${relPath}:${startNo}` : `${relPath}:${startNo}-${endNo}`;
-      provider.send(ref + "\n");
+      sendLineReference(provider, editor);
     }),
     vscode.commands.registerCommand("ohMyPi.sendFile", () => {
       const editor = vscode.window.activeTextEditor;
@@ -70,6 +63,28 @@ export function activate(context: vscode.ExtensionContext): void {
   if (vscode.workspace.getConfiguration("ohMyPi").get<boolean>("autoStart", false)) {
     provider.reveal();
   }
+}
+
+function sendLineReference(provider: TerminalViewProvider, editor: vscode.TextEditor): void {
+  const { document, selection } = editor;
+  const relPath = vscode.workspace.asRelativePath(document.uri);
+
+  // Whole-line range (0-indexed internally; editor display is 1-indexed).
+  let start = selection.start.line;
+  let end = selection.end.line;
+  // A selection ending at column 0 does not include that last line.
+  if (selection.end.character === 0 && end > start) {
+    end -= 1;
+  }
+  // Clamp to the valid document range.
+  const lastLine = document.lineCount - 1;
+  start = Math.max(0, Math.min(start, lastLine));
+  end = Math.max(0, Math.min(end, lastLine));
+
+  const startNo = start + 1;
+  const endNo = end + 1;
+  const ref = startNo === endNo ? `${relPath}:${startNo}` : `${relPath}:${startNo}-${endNo}`;
+  provider.send(ref + "\n");
 }
 
 export function deactivate(): void {}
