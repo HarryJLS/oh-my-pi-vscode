@@ -1,5 +1,5 @@
 export type TerminalMessage = {
-  type: "ready" | "resize" | "input" | "openUrl" | "openFile";
+  type: "ready" | "resize" | "input" | "openUrl" | "openFile" | "toggleSidebar";
   data?: string;
   cols?: number;
   rows?: number;
@@ -40,6 +40,10 @@ export function parseTerminalMessage(raw: unknown): TerminalMessage | null {
       return null;
     }
     return { type: "openUrl", uri: msg.uri };
+  }
+
+  if (type === "toggleSidebar") {
+    return { type: "toggleSidebar" };
   }
 
   if (type === "openFile") {

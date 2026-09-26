@@ -168,6 +168,43 @@ function makeEditor(selection: {
   };
 }
 
+/** Resolves the webview view so the provider starts receiving its messages. */
+function openWebview(provider: FakeProvider, visible: boolean) {
+  const posted: unknown[] = [];
+  let receive: ((raw: unknown) => unknown) | undefined;
+  provider.resolveWebviewView(
+    {
+      visible,
+      webview: {
+        html: "",
+        postMessage(message: unknown) {
+          posted.push(message);
+          return Promise.resolve(true);
+        },
+        onDidReceiveMessage(handler: (raw: unknown) => unknown) {
+          receive = handler;
+          return { dispose() {} };
+        },
+      },
+      onDidChangeVisibility() {
+        return { dispose() {} };
+      },
+      onDidDispose() {
+        return { dispose() {} };
+      },
+    },
+    {},
+    {},
+  );
+
+  return {
+    posted,
+    async emit(message: unknown) {
+      receive?.(message);
+    },
+  };
+}
+
 describe("ohMyPi.sendSelectedLinesOrToggle", () => {
   it("reveals the sidebar when the view has never been resolved", async () => {
     const { fake } = await loadExtension();
@@ -193,30 +230,7 @@ describe("ohMyPi.sendSelectedLinesOrToggle", () => {
 
     const provider = fake.providers.get("ohMyPi.terminal");
     assert.ok(provider);
-    const posted: unknown[] = [];
-    provider.resolveWebviewView(
-      {
-        visible: true,
-        webview: {
-          html: "",
-          postMessage(message: unknown) {
-            posted.push(message);
-            return Promise.resolve(true);
-          },
-          onDidReceiveMessage() {
-            return { dispose() {} };
-          },
-        },
-        onDidChangeVisibility() {
-          return { dispose() {} };
-        },
-        onDidDispose() {
-          return { dispose() {} };
-        },
-      },
-      {},
-      {},
-    );
+    const webview = openWebview(provider, true);
 
     fake.window.activeTextEditor = makeEditor({
       isEmpty: true,
@@ -228,7 +242,7 @@ describe("ohMyPi.sendSelectedLinesOrToggle", () => {
 
     assert.deepEqual(fake.executed, ["workbench.action.closeSidebar"]);
     // Toggling must never start omp before the webview reports itself ready.
-    assert.deepEqual(posted, []);
+    assert.deepEqual(webview.posted, []);
 
     provider.dispose();
   });
@@ -253,5 +267,43 @@ describe("ohMyPi.sendSelectedLinesOrToggle", () => {
 
     assert.deepEqual(sent, ["/tmp/a.ts:5-9\n"]);
     assert.deepEqual(fake.executed, []);
+  });
+});
+
+describe("Ctrl+L inside the terminal", () => {
+  it("closes the sidebar when the webview owns focus", async () => {
+    const { fake } = await loadExtension();
+    const provider = fake.providers.get("ohMyPi.terminal");
+    assert.ok(provider);
+    const webview = openWebview(provider, true);
+
+    await webview.emit({ type: "toggleSidebar" });
+
+    assert.deepEqual(fake.executed, ["workbench.action.closeSidebar"]);
+    provider.dispose();
+  });
+
+  it("reveals the sidebar when the resolved view is hidden", async () => {
+    const { fake } = await loadExtension();
+    const provider = fake.providers.get("ohMyPi.terminal");
+    assert.ok(provider);
+    const webview = openWebview(provider, false);
+
+    await webview.emit({ type: "toggleSidebar" });
+
+    assert.deepEqual(fake.executed, ["ohMyPi.terminal.focus"]);
+    provider.dispose();
+  });
+
+  it("ignores unknown webview messages", async () => {
+    const { fake } = await loadExtension();
+    const provider = fake.providers.get("ohMyPi.terminal");
+    assert.ok(provider);
+    const webview = openWebview(provider, true);
+
+    await webview.emit({ type: "nope" });
+
+    assert.deepEqual(fake.executed, []);
+    provider.dispose();
   });
 });

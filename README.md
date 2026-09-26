@@ -40,6 +40,7 @@ Any of these opens the panel:
 | Paste | Cmd/Ctrl+V or middle-click |
 | Delete the current input line | Cmd+Backspace (macOS terminal semantics) |
 | Find | Cmd/Ctrl+F (or the search toolbar button) |
+| Toggle the Oh My Pi sidebar | Ctrl+L |
 | New line in the `omp` composer | Shift+Enter |
 
 The find bar supports case-sensitive, whole-word, and regex matching with a live result counter. Press **Enter** / **Shift+Enter** to jump to the next / previous match, and **Esc** to close.
@@ -48,7 +49,7 @@ The find bar supports case-sensitive, whole-word, and regex matching with a live
 
 ### Sending code from the editor
 
-Available from the editor's right-click menu or the Command Palette. In the editor, **Control+L** sends selected lines and focuses the OMP composer; with no selection, it toggles the Oh My Pi sidebar — opening it (and launching `omp`) when hidden, closing it when visible.
+Available from the editor's right-click menu or the Command Palette. In the editor, **Control+L** sends selected lines and focuses the OMP composer; with no selection, it toggles the Oh My Pi sidebar — opening it (and launching `omp`) when hidden, closing it when visible. Inside the terminal the same key toggles the sidebar too: it is intercepted in the webview and never reaches `omp`, so the shortcut behaves identically wherever focus is.
 
 | Command | What it sends |
 |---------|---------------|

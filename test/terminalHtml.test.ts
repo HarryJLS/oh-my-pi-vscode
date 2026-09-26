@@ -29,6 +29,10 @@ describe("buildTerminalHtml", () => {
       // Preserve macOS terminal semantics: Cmd+Backspace sends Ctrl+U.
       assert.match(result.html, /e\.metaKey.*e\.key === 'Backspace'/s);
       assert.match(result.html, /data: '\\x15'/);
+      // Ctrl+L must be swallowed before xterm forwards it to omp.
+      assert.match(result.html, /e\.ctrlKey \|\| e\.metaKey \|\| e\.altKey \|\| e\.shiftKey/);
+      assert.match(result.html, /e\.key !== 'l' && e\.key !== 'L'/);
+      assert.match(result.html, /type: 'toggleSidebar'/);
     }
   });
 

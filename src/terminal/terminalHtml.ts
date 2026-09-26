@@ -352,6 +352,18 @@ function buildTerminalHtmlInner(
         searchInput.select();
       }
     }, true);
+    // Ctrl+L toggles the sidebar no matter where focus is. The editor-side
+    // binding (when: editorTextFocus) cannot fire while the webview owns focus,
+    // and xterm would otherwise forward Ctrl+L to omp's own binding, so the
+    // keystroke is swallowed here and routed to the extension host instead.
+    document.addEventListener('keydown', (e) => {
+      if (!e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (e.key !== 'l' && e.key !== 'L') return;
+      e.preventDefault();
+      e.stopPropagation();
+      vscode.postMessage({ type: 'toggleSidebar' });
+    }, true);
+
     // Clickable URLs — handled by WebLinksAddon, forwarded to extension host
     // which opens them via vscode.env.openExternal.
     const webLinksAddon = new WebLinksAddon.WebLinksAddon((_event, uri) => {

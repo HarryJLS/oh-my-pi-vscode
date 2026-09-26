@@ -88,6 +88,9 @@ export class TerminalViewProvider implements vscode.WebviewViewProvider {
             }
             this.#writeInput(msg.data ?? "");
             break;
+          case "toggleSidebar":
+            this.toggle();
+            break;
           case "openUrl":
             if (msg.uri) {
               void vscode.env.openExternal(vscode.Uri.parse(msg.uri));

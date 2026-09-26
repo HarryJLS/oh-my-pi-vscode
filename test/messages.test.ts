@@ -34,6 +34,10 @@ describe("parseTerminalMessage", () => {
     });
   });
 
+  it("accepts toggleSidebar", () => {
+    assert.deepEqual(parseTerminalMessage({ type: "toggleSidebar" }), { type: "toggleSidebar" });
+  });
+
   it("rejects openUrl without uri", () => {
     assert.equal(parseTerminalMessage({ type: "openUrl" }), null);
     assert.equal(parseTerminalMessage({ type: "openUrl", uri: "" }), null);
